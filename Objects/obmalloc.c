@@ -1255,6 +1255,9 @@ _PyObject_Alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
             ++pool->ref.count;
             bp = pool->freeblock;
             assert(bp != NULL);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+            ASAN_UNPOISON_MEMORY_REGION(bp, size);
+#endif
             if ((pool->freeblock = *(block **)bp) != NULL) {
                 UNLOCK();
                 if (use_calloc)
@@ -1364,6 +1367,9 @@ _PyObject_Alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
                 UNLOCK();
                 if (use_calloc)
                     memset(bp, 0, nbytes);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+                ASAN_UNPOISON_MEMORY_REGION(bp, nbytes);
+#endif
                 return (void *)bp;
             }
             /*
@@ -1381,6 +1387,9 @@ _PyObject_Alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
             UNLOCK();
             if (use_calloc)
                 memset(bp, 0, nbytes);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+            ASAN_UNPOISON_MEMORY_REGION(bp, nbytes);
+#endif
             return (void *)bp;
         }
 
@@ -1395,6 +1404,9 @@ _PyObject_Alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
         pool->szidx = DUMMY_SIZE_IDX;
         usable_arenas->pool_address += POOL_SIZE;
         --usable_arenas->nfreepools;
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+        ASAN_POISON_MEMORY_REGION(pool, POOL_SIZE);
+#endif
 
         if (usable_arenas->nfreepools == 0) {
             assert(usable_arenas->nextarena == NULL ||
